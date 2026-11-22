@@ -1,0 +1,48 @@
+
+name: Gerar APK EXPRESS TV
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'express-tv-android-project-2.zip'
+      - '.github/workflows/main.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extrair projeto
+        run: |
+          mkdir projeto
+          unzip -q express-tv-android-project-2.zip -d projeto
+          FILE=$(find projeto -name settings.gradle.kts -o -name settings.gradle | head -1)
+          if [ -z "$FILE" ]; then
+            echo "Arquivo Gradle não encontrado"
+            exit 1
+          fi
+          echo "PROJECT_DIR=$(dirname "$FILE")" >> $GITHUB_ENV
+
+      - name: Compilar APK
+        run: gradle -p "$PROJECT_DIR" assembleDebug --no-daemon
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EXPRESS-TV-APK
+          path: projeto/**/build/outputs/apk/debug/*.apk
